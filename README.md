@@ -19,7 +19,7 @@ HKEY_CLASSES_ROOT
  |    |    |    |-- Key:REG_SZ  (Default) = "Full path to DLL file"
 ```
 
-*{E357FCCD-A995-4576-B01F-234630154E96}* is the thumbnailer interface. {98E669D7-CD64-47DD-9111-5DEB438FC7E0} is the actual dump thumbnailer implementation.
+*{E357FCCD-A995-4576-B01F-234630154E96}* is the thumbnailer interface. {80CF1ACD-0EE8-409A-A22C-EC25BE82C647} is the actual ora thumbnailer implementation.
 
 To enable the component, either restart *explorer.exe* or run a program which calls the following function:
 
