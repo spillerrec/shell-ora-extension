@@ -1,0 +1,4 @@
+LIBRARY "shell-ora-extension"
+EXPORTS
+    DllGetClassObject   PRIVATE
+    DllCanUnloadNow     PRIVATE
