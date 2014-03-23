@@ -43,7 +43,7 @@ HRESULT ClassFactory::CreateInstance( IUnknown *outer, REFIID riid, void **ppv )
 	if( outer )
 		return CLASS_E_NOAGGREGATION; //Aggregation not supported
 	else{
-		MZipHandler* handler = new (std::nothrow) MZipHandler();
+		OraHandler* handler = new (std::nothrow) OraHandler();
 		if( !handler )
 			return E_OUTOFMEMORY;
 

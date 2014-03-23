@@ -95,16 +95,20 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;MZIP_SHELL_EXT2_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\Program Files\libarchive\include;C:\Program Files\zlib\include;%(AdditionalLibraryDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>Source.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>C:\Program Files\libarchive\lib;C:\Program Files\zlib\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -150,7 +154,7 @@
   <ItemGroup>
     <ClInclude Include="ClassFactory.h" />
     <ClInclude Include="ioapi.h" />
-    <ClInclude Include="MZipHandler.h" />
+    <ClInclude Include="OraHandler.hpp" />
     <ClInclude Include="unzip.h" />
   </ItemGroup>
   <ItemGroup>
@@ -170,8 +174,7 @@
       </PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ioapi.cpp" />
-    <ClCompile Include="MZipHandler.cpp" />
-    <ClCompile Include="mzip_shell_ext2.cpp" />
+    <ClCompile Include="OraHandler.cpp" />
     <ClCompile Include="unzip.cpp" />
   </ItemGroup>
   <ItemGroup>
