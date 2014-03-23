@@ -8,7 +8,7 @@ To install you need to manually modify your registry. Add the following to regis
 
 ```
 HKEY_CLASSES_ROOT
- |-- .dump
+ |-- .ora
  |    |-- ShellEx
  |    |    |-- {E357FCCD-A995-4576-B01F-234630154E96}
  |    |    |    |-- Key:REG_SZ  (Default) = {80CF1ACD-0EE8-409A-A22C-EC25BE82C647}
