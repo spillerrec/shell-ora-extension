@@ -4,119 +4,97 @@
 #include <string>
 #include <Shlwapi.h>
 
+#include <archive.h>
+#include <archive_entry.h>
+
+using namespace std;
+
 //TODO: find the type to use for "size"
 
-char* read_string_file( unzFile file, unz_file_info64 info, const char* password=NULL ){
-	if( unzOpenCurrentFilePassword( file, password ) != UNZ_OK )
-		return NULL;
+struct ReadingData{
+	IStream& stream;
+	unsigned buff_size; //TODO: how large should this be?
+	char* buff;
 	
-	//Create zero-terminated buffer
-	char* buf = new char[ info.uncompressed_size + 1 ];
-	buf[ info.uncompressed_size ] = 0;
-	
-	//Read file
-	if( unzReadCurrentFile( file, buf, info.uncompressed_size ) < 0 ){
-		//TODO: this function reads in chunks?
-		delete[] buf;
-		return NULL;
+	ReadingData( IStream& stream, int buff_size = 1024*4 ) : stream( stream ), buff_size(buff_size) {
+		buff = new char[buff_size];
 	}
-	
-	return buf;
+	~ReadingData(){ delete[] buff; }
+};
+__LA_SSIZE_T stream_read( archive*, void* data, const void** buff ){
+	ULONG bytes_read;
+	ReadingData& stream = *(ReadingData*)data;
+	stream.stream.Read( stream.buff, stream.buff_size, &bytes_read );
+	*buff = stream.buff;
+	return bytes_read;
 }
 
-bool read_binary_file( unzFile file, unz_file_info64 info, char** data, unsigned &size, const char* password=NULL ){
-	*data = NULL;
-	size = 0;
-	
-	if( unzOpenCurrentFilePassword( file, password ) != UNZ_OK )
-		return false;
-	
-	//Create zero-terminated buffer
-	char* buf = new char[ info.uncompressed_size + 1 ];
-	buf[ info.uncompressed_size ] = 0;
-	
-	//Read file
-	if( unzReadCurrentFile( file, buf, info.uncompressed_size ) < 0 ){
-		//TODO: this function reads in chunks?
-		delete[] buf;
-		return false;
-	}
-	
-	*data = buf;
-	size = info.uncompressed_size;
-	return true;
+int stream_close( archive*, void *data ){
+	//((ReadingData*)data)->stream.Commit( STGC_DEFAULT );
+	return ARCHIVE_OK;
 }
 
-bool read_mzip( unzFile file, char* *xml, char* *thumbnail, unsigned &size ){
-	*xml = NULL;
-	*thumbnail = NULL;
-	size = 0;
-	
-	unz_global_info64 gi;
-	int err = unzGetGlobalInfo64( file, &gi );
-	if( err != UNZ_OK ){
-		std::cout << "ERROR in unzGetGlobalInfo64, code: " << err << "\n";
-		return false;
+static string read_data( archive* a ){
+	string data;
+
+	const char *buff;
+	size_t size;
+	__LA_INT64_T offset;
+
+	while( true ){
+		switch( archive_read_data_block( a, (const void**)&buff, &size, &offset ) ){
+			case ARCHIVE_OK: data.append( buff, size ); break;
+			case ARCHIVE_EOF: return data;
+			default: 
+				cout << archive_error_string(a);
+				return data;
+		}
 	}
-	
-	bool mime_validated = false;
+}
+
+static std::string next_file( archive* a ){
+	archive_entry *entry;
+	switch( archive_read_next_header( a, &entry ) ){
+		case ARCHIVE_EOF: return "";
+		case ARCHIVE_OK:
+			return archive_entry_pathname( entry );
+			
+		default:
+			cout << archive_error_string(a);
+			return "";
+	}
+}
+
+bool read_zip( archive* file, string &xml, string &thumbnail ){
+	string mime = next_file( file );
+	if( mime != "mimetype" )
+		return false;
+	string mimetype = read_data( file );
+	//NOTE: we could check contents, but whatever
 	
 	//Iterate over each file
-	for( uLong i=0; i<gi.number_entry; ){
-		char filename_inzip[256];
-      unz_file_info64 file_info;
-		
-		//Read info
-		int err = unzGetCurrentFileInfo64( file, &file_info, filename_inzip, sizeof(filename_inzip), NULL,0,NULL,0 );
-		if( err != UNZ_OK ){
-			std::cout << "ERROR in unzGetCurrentFileInfo64, code " << err << "\n";
-			break;
-		}
-		
-		//Check for mime-type
-		if( !mime_validated && std::string("mimetype") == filename_inzip ){
-			//Validate compression and placement
-			if( i!=0 || file_info.compression_method!=0 )
-				return false;
-			
-			char* mime = read_string_file( file, file_info );
-			if( !mime )
-				return false;
-			if( std::string("image/openraster") == mime )
-				mime_validated = true;
-			delete[] mime;
-			
-			if( !mime_validated )
-				return false;
-		}
-		
+	string filename;
+	while( !(filename = next_file( file )).empty() ){
 		//Check for thumbnail
-		if( !*thumbnail && std::string(filename_inzip).find("Thumbnails/thumbnail.") == 0 ){
-			if( !read_binary_file( file, file_info, thumbnail, size ) ){
-				std::cout << "Reading thumbnail failed\n";
-				return false;
-			}
+		if( thumbnail.empty() && (
+				filename.find( "Thumbnails/thumbnail." ) == 0
+			||	filename.find( "thumb" ) == 0
+			) ){
+			thumbnail = read_data( file );
 			//TODO: what about file format?
 		}
 		
 		//Check for meta
-		if( !*xml && std::string("meta.xml") == filename_inzip )
-			*xml = read_string_file( file, file_info );
-		
-		//Go to next file, but don't go past the end
-		if( ++i<gi.number_entry && unzGoToNextFile( file ) != UNZ_OK ){
-			std::cout << "ERROR in unzGoToNextFile" << "\n";
-			return false;
-		}
+		if( xml.empty() && "meta.xml" == filename )
+			xml = read_data( file );
 	}
 	
-	return mime_validated;
+	return true;
 }
 
 
 OraHandler::OraHandler()
-	:	file( NULL )
-	,	valid( false ), xml( NULL ), thumb( NULL )
+	:	valid( false )
 	,	pFactory( NULL )
 	,	ref_count( 0 )
 {
@@ -132,14 +110,7 @@ OraHandler::OraHandler()
 
 
 OraHandler::~OraHandler(){
-	if( file ){
-		unzClose( file );
 
-		if( xml )
-			delete[] xml;
-		if( thumb )
-			delete[] thumb;
-	}
 }
 
 
@@ -148,8 +119,8 @@ HRESULT __stdcall OraHandler::QueryInterface( const IID& iid, void** ppv ){
 	if( iid == IID_IUnknown || iid == IID_IThumbnailProvider ){
 		*ppv = static_cast<IThumbnailProvider*>(this);
 	}
-	else if( iid == IID_IInitializeWithFile ){
-		*ppv = static_cast<IInitializeWithFile*>(this);
+	else if( iid == IID_IInitializeWithStream ){
+		*ppv = static_cast<IInitializeWithStream*>(this);
 	}
 	else{
 		*ppv = NULL;
@@ -178,7 +149,7 @@ HRESULT __stdcall OraHandler::GetThumbnail( UINT cx, HBITMAP *phbmp, WTS_ALPHATY
 	*phbmp = NULL;
 	//return S_FALSE;
 
-	IStream *stream = SHCreateMemStream( (BYTE*)thumb, size );
+	IStream *stream = SHCreateMemStream( (BYTE*)thumb.c_str(), thumb.size() );
 	if( !stream )
 		return S_FALSE;
 
@@ -258,23 +229,25 @@ HRESULT __stdcall OraHandler::GetThumbnail( UINT cx, HBITMAP *phbmp, WTS_ALPHATY
 	return S_OK;
 }
 
-#include <iostream>
 
-#define BUFFER_SIZE 1000
-HRESULT __stdcall OraHandler::Initialize( LPCWSTR pszFilePath, DWORD grfMode ){
-	size_t   i;
-char *strChar = new char[BUFFER_SIZE];
-wcstombs_s(&i, strChar, (size_t)BUFFER_SIZE, pszFilePath, (size_t)BUFFER_SIZE);
+HRESULT __stdcall OraHandler::Initialize( IStream *pstream, DWORD grfMode ){
+	HRESULT sucess = S_FALSE;
 
-	std::cout << strChar << "\n";
-	file = unzOpen64( strChar );
-	if( file )
-		valid = read_mzip( file, &xml, &thumb, size );
-	valid = true;
-	if( !file )
+	if( !pstream )
 		return S_FALSE;
-	if( !valid )
-		return S_FALSE;
-	std::cout << "Loading OK\n";
-	return S_OK;
+
+	archive* file = archive_read_new();
+	archive_read_support_compression_all( file );
+	archive_read_support_format_all( file );
+	
+	ReadingData data( *pstream );
+	if( !archive_read_open( file, &data, nullptr, stream_read, stream_close ) ){
+		valid = read_zip( file, xml, thumb );
+		sucess = S_OK;
+	}
+
+	archive_read_close( file );
+	archive_read_free( file );
+
+	return sucess;
 }
