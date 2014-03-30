@@ -7,6 +7,11 @@
 #include <archive.h>
 #include <archive_entry.h>
 
+#include <propkey.h>
+#include <Propvarutil.h>
+
+#include "pugixml/pugixml.hpp"
+
 using namespace std;
 
 //TODO: find the type to use for "size"
@@ -85,7 +90,7 @@ bool read_zip( archive* file, string &xml, string &thumbnail ){
 		}
 		
 		//Check for meta
-		if( xml.empty() && "meta.xml" == filename )
+		if( xml.empty() && "stack.xml" == filename )
 			xml = read_data( file );
 	}
 	
@@ -121,6 +126,9 @@ HRESULT __stdcall OraHandler::QueryInterface( const IID& iid, void** ppv ){
 	}
 	else if( iid == IID_IInitializeWithStream ){
 		*ppv = static_cast<IInitializeWithStream*>(this);
+	}
+	else if( iid == IID_IPropertyStore ){
+		*ppv = static_cast<IPropertyStore*>(this);
 	}
 	else{
 		*ppv = NULL;
@@ -229,12 +237,60 @@ HRESULT __stdcall OraHandler::GetThumbnail( UINT cx, HBITMAP *phbmp, WTS_ALPHATY
 	return S_OK;
 }
 
+//IPropertyStore
+HRESULT __stdcall OraHandler::Commit(){
+	return S_FALSE;
+}
+
+HRESULT __stdcall OraHandler::GetAt( DWORD iProp, PROPERTYKEY *pkey ){
+	return prop_cache->GetAt( iProp, pkey );
+}
+
+HRESULT __stdcall OraHandler::GetCount( DWORD *cProps ){
+	return prop_cache->GetCount( cProps );
+}
+
+HRESULT __stdcall OraHandler::GetValue( REFPROPERTYKEY key, PROPVARIANT *pv ){
+	return prop_cache->GetValue( key, pv );
+}
+
+HRESULT __stdcall OraHandler::SetValue( REFPROPERTYKEY key, REFPROPVARIANT propvar ){
+	return S_FALSE;
+}
+
+
+void OraHandler::read_xml( std::string xml ){
+	pugi::xml_document doc;
+	doc.load_buffer( xml.c_str(), xml.size() );
+	pugi::xml_node image = doc.child( "image" );
+	
+	//Read width and height
+	PROPVARIANT prop_width;
+	PROPVARIANT prop_height;
+	prop_height.vt = prop_width.vt = VT_UI4;
+	prop_width.uiVal = image.attribute( "w" ).as_int();
+	prop_height.uiVal = image.attribute( "h" ).as_int();
+	prop_cache->SetValue( PKEY_Image_HorizontalSize, prop_width );
+	prop_cache->SetValue( PKEY_Image_VerticalSize, prop_height );
+
+	//Read resolution
+	PROPVARIANT prop_xres;
+	PROPVARIANT prop_yres;
+	prop_xres.vt = prop_yres.vt = VT_R8;
+	prop_xres.dblVal = image.attribute( "xres" ).as_double( 72 );
+	prop_yres.dblVal = image.attribute( "yres" ).as_double( 72 );
+	prop_cache->SetValue( PKEY_Image_HorizontalResolution, prop_xres );
+	prop_cache->SetValue( PKEY_Image_VerticalResolution, prop_yres );
+}
+
 
 HRESULT __stdcall OraHandler::Initialize( IStream *pstream, DWORD grfMode ){
 	HRESULT sucess = S_FALSE;
 
 	if( !pstream )
 		return S_FALSE;
+
+	HRESULT hr = PSCreateMemoryPropertyStore( IID_PPV_ARGS( &prop_cache ) );
 
 	archive* file = archive_read_new();
 	archive_read_support_compression_all( file );
@@ -243,6 +299,8 @@ HRESULT __stdcall OraHandler::Initialize( IStream *pstream, DWORD grfMode ){
 	ReadingData data( *pstream );
 	if( !archive_read_open( file, &data, nullptr, stream_read, stream_close ) ){
 		valid = read_zip( file, xml, thumb );
+
+		read_xml( xml );
 		sucess = S_OK;
 	}
 
