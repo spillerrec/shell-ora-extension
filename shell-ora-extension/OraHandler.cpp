@@ -202,7 +202,7 @@ HRESULT __stdcall OraHandler::GetThumbnail( UINT cx, HBITMAP *phbmp, WTS_ALPHATY
 					HDC hdc = ::GetDC(NULL);
 					void *bits = 0;
 
-					BITMAPINFO bi;
+					BITMAPINFO bi = { 0 };
 					bi.bmiHeader.biSize = sizeof(bi.bmiHeader);
 					bi.bmiHeader.biWidth = width;
 					bi.bmiHeader.biHeight = -static_cast<LONG>(height);
@@ -265,8 +265,8 @@ void OraHandler::read_xml( std::string xml ){
 	pugi::xml_node image = doc.child( "image" );
 	
 	//Read width and height
-	PROPVARIANT prop_width;
-	PROPVARIANT prop_height;
+	PROPVARIANT prop_width = { 0 };
+	PROPVARIANT prop_height = { 0 };
 	prop_height.vt = prop_width.vt = VT_UI4;
 	prop_width.uiVal = image.attribute( "w" ).as_int( 0 );
 	prop_height.uiVal = image.attribute( "h" ).as_int( 0 );
@@ -274,15 +274,15 @@ void OraHandler::read_xml( std::string xml ){
 	prop_cache->SetValue( PKEY_Image_VerticalSize, prop_height );
 	
 	//width and height in string format
-	PROPVARIANT prop_dims;
+	PROPVARIANT prop_dims = { 0 };
 	wstring dims_str = to_wstring(prop_width.uiVal) + L"x" + to_wstring(prop_height.uiVal);
 	InitPropVariantFromString( dims_str.c_str(), &prop_dims );
 	prop_cache->SetValue( PKEY_Image_Dimensions, prop_dims );
 	//PropVariantClear( &prop_dims );
 
 	//Read resolution
-	PROPVARIANT prop_xres;
-	PROPVARIANT prop_yres;
+	PROPVARIANT prop_xres = { 0 };
+	PROPVARIANT prop_yres = { 0 };
 	prop_xres.vt = prop_yres.vt = VT_R8;
 	prop_xres.dblVal = image.attribute( "xres" ).as_double( 72 );
 	prop_yres.dblVal = image.attribute( "yres" ).as_double( 72 );
