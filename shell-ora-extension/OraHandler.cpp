@@ -155,7 +155,7 @@ HRESULT __stdcall OraHandler::GetThumbnail( UINT cx, HBITMAP *phbmp, WTS_ALPHATY
 	if( !valid || !pFactory )
 		return S_FALSE;
 	*phbmp = NULL;
-	//return S_FALSE;
+	*pdwAlpha = WTSAT_ARGB;
 
 	IStream *stream = SHCreateMemStream( (BYTE*)thumb.c_str(), thumb.size() );
 	if( !stream )
@@ -268,10 +268,17 @@ void OraHandler::read_xml( std::string xml ){
 	PROPVARIANT prop_width;
 	PROPVARIANT prop_height;
 	prop_height.vt = prop_width.vt = VT_UI4;
-	prop_width.uiVal = image.attribute( "w" ).as_int();
-	prop_height.uiVal = image.attribute( "h" ).as_int();
+	prop_width.uiVal = image.attribute( "w" ).as_int( 0 );
+	prop_height.uiVal = image.attribute( "h" ).as_int( 0 );
 	prop_cache->SetValue( PKEY_Image_HorizontalSize, prop_width );
 	prop_cache->SetValue( PKEY_Image_VerticalSize, prop_height );
+	
+	//width and height in string format
+	PROPVARIANT prop_dims;
+	wstring dims_str = to_wstring(prop_width.uiVal) + L"x" + to_wstring(prop_height.uiVal);
+	InitPropVariantFromString( dims_str.c_str(), &prop_dims );
+	prop_cache->SetValue( PKEY_Image_Dimensions, prop_dims );
+	//PropVariantClear( &prop_dims );
 
 	//Read resolution
 	PROPVARIANT prop_xres;
