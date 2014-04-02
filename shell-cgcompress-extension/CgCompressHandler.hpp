@@ -1,7 +1,7 @@
 #pragma once
 #include "ZipHandler.hpp"
 
-class OraHandler : public ZipHandler {
+class CgCompressHandler : public ZipHandler {
 protected:
 	virtual std::string mimetype() const { return "image/openraster"; }
 

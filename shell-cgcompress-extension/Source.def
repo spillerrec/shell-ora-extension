@@ -1,4 +1,4 @@
-LIBRARY "shell-ora-extension"
+LIBRARY "shell-cgcompress-extension"
 EXPORTS
     DllGetClassObject   PRIVATE
     DllCanUnloadNow     PRIVATE

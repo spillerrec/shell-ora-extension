@@ -1,4 +1,4 @@
-#include "OraHandler.hpp"
+#include "CgCompressHandler.hpp"
 
 //For properties
 #include <propkey.h>
@@ -9,7 +9,7 @@
 
 using namespace std;
 
-void OraHandler::readMeta( string xml ) {
+void CgCompressHandler::readMeta( string xml ) {
 	pugi::xml_document doc;
 	doc.load_buffer( xml.c_str( ), xml.size( ) );
 	pugi::xml_node image = doc.child( "image" );

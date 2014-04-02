@@ -1,5 +1,5 @@
 #include "ClassFactory.h"
-#include "OraHandler.hpp"
+#include "CgCompressHandler.hpp"
 
 #include <new>
 
@@ -43,7 +43,7 @@ HRESULT ClassFactory::CreateInstance( IUnknown *outer, REFIID riid, void **ppv )
 	if( outer )
 		return CLASS_E_NOAGGREGATION; //Aggregation not supported
 	else{
-		OraHandler* handler = new (std::nothrow) OraHandler();
+		CgCompressHandler* handler = new (std::nothrow) CgCompressHandler();
 		if( !handler )
 			return E_OUTOFMEMORY;
 
