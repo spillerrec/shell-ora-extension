@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shell-ora-extension", "shell-ora-extension\shell-ora-extension.vcxproj", "{4FD65D45-CADC-4A79-B3D6-9D01E04A28FB}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shell-cgcompress-extension", "shell-cgcompress-extension\shell-cgcompress-extension.vcxproj", "{4FD65D45-CADC-4A79-B3D6-9D01E04A28FB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
