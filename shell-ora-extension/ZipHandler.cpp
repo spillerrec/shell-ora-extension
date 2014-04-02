@@ -2,19 +2,17 @@
 
 #include <iostream>
 #include <string>
+#include <algorithm>
+
 #include <Shlwapi.h>
 
 #include <archive.h>
 #include <archive_entry.h>
 
-#include <propkey.h>
-#include <Propvarutil.h>
-
-#include "pugixml/pugixml.hpp"
-
 using namespace std;
 
 //TODO: find the type to use for "size"
+//TODO: implement skip for greater efficiency when reading
 
 struct ReadingData{
 	IStream& stream;
@@ -70,28 +68,28 @@ static std::string next_file( archive* a ){
 	}
 }
 
-bool read_zip( archive* file, string &xml, string &thumbnail ){
+bool ZipHandler::read_zip( archive* file ){
+	//Check mimetype
 	string mime = next_file( file );
 	if( mime != "mimetype" )
 		return false;
-	string mimetype = read_data( file );
-	//NOTE: we could check contents, but whatever
+	if( read_data( file ) != mimetype() )
+		return false;
+	//TODO: check compression somehow
 	
 	//Iterate over each file
 	string filename;
 	while( !(filename = next_file( file )).empty() ){
 		//Check for thumbnail
-		if( thumbnail.empty() && (
-				filename.find( "Thumbnails/thumbnail." ) == 0
-			||	filename.find( "thumb" ) == 0
-			) ){
-			thumbnail = read_data( file );
+		if( thumb.empty( ) && isThumbnail( filename ) )
+			thumb = read_data( file );
 			//TODO: what about file format?
-		}
 		
 		//Check for meta
-		if( xml.empty() && "stack.xml" == filename )
+		if( xml.empty() && isMeta( filename ) )
 			xml = read_data( file );
+
+		//TODO: stop reading once both meta and thumb have been read
 	}
 	
 	return true;
@@ -105,6 +103,8 @@ ZipHandler::ZipHandler()
 {
 	CoInitialize(NULL);
 
+	//TODO: clean up?
+	//TODO: move to Initialize?
 	HRESULT hr = CoCreateInstance(
 			CLSID_WICImagingFactory
 		,	NULL
@@ -150,7 +150,6 @@ ULONG __stdcall ZipHandler::Release(){
 }
 
 
-#include <algorithm>
 HRESULT __stdcall ZipHandler::GetThumbnail(UINT cx, HBITMAP *phbmp, WTS_ALPHATYPE *pdwAlpha){
 	if( !valid || !pFactory )
 		return S_FALSE;
@@ -259,38 +258,6 @@ HRESULT __stdcall ZipHandler::SetValue(REFPROPERTYKEY key, REFPROPVARIANT propva
 }
 
 
-void ZipHandler::read_xml(std::string xml){
-	pugi::xml_document doc;
-	doc.load_buffer( xml.c_str(), xml.size() );
-	pugi::xml_node image = doc.child( "image" );
-	
-	//Read width and height
-	PROPVARIANT prop_width = { 0 };
-	PROPVARIANT prop_height = { 0 };
-	prop_height.vt = prop_width.vt = VT_UI4;
-	prop_width.uiVal = image.attribute( "w" ).as_int( 0 );
-	prop_height.uiVal = image.attribute( "h" ).as_int( 0 );
-	prop_cache->SetValue( PKEY_Image_HorizontalSize, prop_width );
-	prop_cache->SetValue( PKEY_Image_VerticalSize, prop_height );
-	
-	//width and height in string format
-	PROPVARIANT prop_dims = { 0 };
-	wstring dims_str = to_wstring(prop_width.uiVal) + L"x" + to_wstring(prop_height.uiVal);
-	InitPropVariantFromString( dims_str.c_str(), &prop_dims );
-	prop_cache->SetValue( PKEY_Image_Dimensions, prop_dims );
-	//PropVariantClear( &prop_dims );
-
-	//Read resolution
-	PROPVARIANT prop_xres = { 0 };
-	PROPVARIANT prop_yres = { 0 };
-	prop_xres.vt = prop_yres.vt = VT_R8;
-	prop_xres.dblVal = image.attribute( "xres" ).as_double( 72 );
-	prop_yres.dblVal = image.attribute( "yres" ).as_double( 72 );
-	prop_cache->SetValue( PKEY_Image_HorizontalResolution, prop_xres );
-	prop_cache->SetValue( PKEY_Image_VerticalResolution, prop_yres );
-}
-
-
 HRESULT __stdcall ZipHandler::Initialize(IStream *pstream, DWORD grfMode){
 	HRESULT sucess = S_FALSE;
 
@@ -305,9 +272,9 @@ HRESULT __stdcall ZipHandler::Initialize(IStream *pstream, DWORD grfMode){
 	
 	ReadingData data( *pstream );
 	if( !archive_read_open( file, &data, nullptr, stream_read, stream_close ) ){
-		valid = read_zip( file, xml, thumb );
+		valid = read_zip( file );
 
-		read_xml( xml );
+		readMeta( xml );
 		sucess = S_OK;
 	}
 

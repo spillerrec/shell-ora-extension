@@ -6,6 +6,8 @@
 
 #include <string>
 
+struct archive;
+
 class ZipHandler : 
 		public IThumbnailProvider
 	,	public IInitializeWithStream
@@ -31,8 +33,8 @@ class ZipHandler :
 		virtual HRESULT __stdcall SetValue( REFPROPERTYKEY key, REFPROPVARIANT propvar );
 
 	public:
-		OraHandler();
-		~OraHandler();
+		ZipHandler();
+		virtual ~ZipHandler();
 
 	public:
 		bool valid;
@@ -43,8 +45,14 @@ class ZipHandler :
 
 	private:
 		ULONG ref_count;
+		bool read_zip( archive* file );
+
+	protected:
 		IPropertyStoreCache* prop_cache;
 
-		void read_xml( std::string xml );
+		virtual std::string mimetype() const = 0;
+		virtual bool isThumbnail( std::string filename ) const = 0;
+		virtual bool isMeta( std::string filename ) const = 0;
+		virtual void readMeta( std::string xml ){}
 };
 

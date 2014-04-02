@@ -154,6 +154,7 @@
   <ItemGroup>
     <ClInclude Include="ClassFactory.h" />
     <ClInclude Include="OraHandler.hpp" />
+    <ClInclude Include="ZipHandler.hpp" />
     <ClInclude Include="pugixml\pugiconfig.hpp" />
     <ClInclude Include="pugixml\pugixml.hpp" />
   </ItemGroup>
@@ -174,6 +175,7 @@
       </PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="OraHandler.cpp" />
+    <ClCompile Include="ZipHandler.cpp" />
     <ClCompile Include="pugixml\pugixml.cpp" />
   </ItemGroup>
   <ItemGroup>
