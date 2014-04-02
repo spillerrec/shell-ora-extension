@@ -6,7 +6,7 @@
 
 #include <string>
 
-class OraHandler : 
+class ZipHandler : 
 		public IThumbnailProvider
 	,	public IInitializeWithStream
 	,	public IPropertyStore

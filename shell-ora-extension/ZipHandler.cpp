@@ -1,4 +1,4 @@
-#include "OraHandler.hpp"
+#include "ZipHandler.hpp"
 
 #include <iostream>
 #include <string>
@@ -98,7 +98,7 @@ bool read_zip( archive* file, string &xml, string &thumbnail ){
 }
 
 
-OraHandler::OraHandler()
+ZipHandler::ZipHandler()
 	:	valid( false )
 	,	pFactory( NULL )
 	,	ref_count( 0 )
@@ -114,13 +114,13 @@ OraHandler::OraHandler()
 }
 
 
-OraHandler::~OraHandler(){
+ZipHandler::~ZipHandler(){
 
 }
 
 
 
-HRESULT __stdcall OraHandler::QueryInterface( const IID& iid, void** ppv ){
+HRESULT __stdcall ZipHandler::QueryInterface(const IID& iid, void** ppv){
 	if( iid == IID_IUnknown || iid == IID_IThumbnailProvider ){
 		*ppv = static_cast<IThumbnailProvider*>(this);
 	}
@@ -139,11 +139,11 @@ HRESULT __stdcall OraHandler::QueryInterface( const IID& iid, void** ppv ){
 	return S_OK;
 }
 
-ULONG __stdcall OraHandler::AddRef(){
+ULONG __stdcall ZipHandler::AddRef(){
 	return InterlockedIncrement( &ref_count );
 }
 
-ULONG __stdcall OraHandler::Release(){
+ULONG __stdcall ZipHandler::Release(){
 	if( InterlockedDecrement( &ref_count ) == 0 )
 		delete this;
 	return ref_count;
@@ -151,7 +151,7 @@ ULONG __stdcall OraHandler::Release(){
 
 
 #include <algorithm>
-HRESULT __stdcall OraHandler::GetThumbnail( UINT cx, HBITMAP *phbmp, WTS_ALPHATYPE *pdwAlpha ){
+HRESULT __stdcall ZipHandler::GetThumbnail(UINT cx, HBITMAP *phbmp, WTS_ALPHATYPE *pdwAlpha){
 	if( !valid || !pFactory )
 		return S_FALSE;
 	*phbmp = NULL;
@@ -238,28 +238,28 @@ HRESULT __stdcall OraHandler::GetThumbnail( UINT cx, HBITMAP *phbmp, WTS_ALPHATY
 }
 
 //IPropertyStore
-HRESULT __stdcall OraHandler::Commit(){
+HRESULT __stdcall ZipHandler::Commit(){
 	return S_FALSE;
 }
 
-HRESULT __stdcall OraHandler::GetAt( DWORD iProp, PROPERTYKEY *pkey ){
+HRESULT __stdcall ZipHandler::GetAt(DWORD iProp, PROPERTYKEY *pkey){
 	return prop_cache->GetAt( iProp, pkey );
 }
 
-HRESULT __stdcall OraHandler::GetCount( DWORD *cProps ){
+HRESULT __stdcall ZipHandler::GetCount(DWORD *cProps){
 	return prop_cache->GetCount( cProps );
 }
 
-HRESULT __stdcall OraHandler::GetValue( REFPROPERTYKEY key, PROPVARIANT *pv ){
+HRESULT __stdcall ZipHandler::GetValue(REFPROPERTYKEY key, PROPVARIANT *pv){
 	return prop_cache->GetValue( key, pv );
 }
 
-HRESULT __stdcall OraHandler::SetValue( REFPROPERTYKEY key, REFPROPVARIANT propvar ){
+HRESULT __stdcall ZipHandler::SetValue(REFPROPERTYKEY key, REFPROPVARIANT propvar){
 	return S_FALSE;
 }
 
 
-void OraHandler::read_xml( std::string xml ){
+void ZipHandler::read_xml(std::string xml){
 	pugi::xml_document doc;
 	doc.load_buffer( xml.c_str(), xml.size() );
 	pugi::xml_node image = doc.child( "image" );
@@ -291,7 +291,7 @@ void OraHandler::read_xml( std::string xml ){
 }
 
 
-HRESULT __stdcall OraHandler::Initialize( IStream *pstream, DWORD grfMode ){
+HRESULT __stdcall ZipHandler::Initialize(IStream *pstream, DWORD grfMode){
 	HRESULT sucess = S_FALSE;
 
 	if( !pstream )
